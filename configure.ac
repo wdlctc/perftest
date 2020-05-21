@@ -275,7 +275,9 @@ fi
 if [test "$CUDA_H_PATH" ]; then
 	AC_DEFINE([HAVE_CUDA], [1], [Enable CUDA feature])
 	AC_DEFINE_UNQUOTED([CUDA_PATH], "$CUDA_H_PATH" , [Enable CUDA feature])
-	LIBS=$LIBS" -lcuda"
+	LIBS=$LIBS" -lhc_am -lhip_hcc"
+	CPPFLAGS=$CPPFLAGS" -std=c++11  -D_GLIBCXX_USE_CXX11_ABI=0 -I/opt/rocm/hip/include/ -I/opt/rocm/include  -I/opt/rocm/hcc/include -I/opt/rocm/hsa/include  -D__HIP_PLATFORM_HCC__"
+	LDFLAGS=$LDFLAGS" -L/opt/rocm/hip/lib64 -L/opt/rocm/hip/lib64 -L/opt/rocm/hcc/lib -L/opt/rocm/hsa/lib -L/opt/rocm/lib"
 fi
 
 AC_TRY_LINK([

@@ -69,7 +69,8 @@
 #endif
 
 #ifdef HAVE_CUDA
-#include CUDA_PATH
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime_api.h>
 #endif
 
 /* Connection types available. */

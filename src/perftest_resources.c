@@ -48,32 +48,32 @@ struct check_alive_data check_alive_data;
 	}											\
 } while (0)
 
-#define CUCHECK(stmt)				\
+#define HIPCHECK(stmt)				\
 	do {					\
-	CUresult result = (stmt);		\
-	ASSERT(CUDA_SUCCESS == result);		\
+	hipError_t result = (stmt);		\
+	ASSERT(hipSuccess == result);		\
 } while (0)
 
 /*----------------------------------------------------------------------------*/
 
-static CUdevice cuDevice;
-static CUcontext cuContext;
+static hipDevice_t cuDevice;
+static hipCtx_t cuContext;
 
 static int pp_init_gpu(struct pingpong_context *ctx, size_t _size)
 {
 	const size_t gpu_page_size = 64*1024;
 	size_t size = (_size + gpu_page_size - 1) & ~(gpu_page_size - 1);
 	printf("initializing CUDA\n");
-	CUresult error = cuInit(0);
-	if (error != CUDA_SUCCESS) {
-		printf("cuInit(0) returned %d\n", error);
+	hipError_t error = hipInit(0);
+	if (error != hipSuccess) {
+		printf("hipInit(0) returned %d\n", error);
 		exit(1);
 	}
 
 	int deviceCount = 0;
-	error = cuDeviceGetCount(&deviceCount);
-	if (error != CUDA_SUCCESS) {
-		printf("cuDeviceGetCount() returned %d\n", error);
+	error = hipGetDeviceCount(&deviceCount);
+	if (error != hipSuccess) {
+		printf("hipGetDeviceCount() returned %d\n", error);
 		exit(1);
 	}
 	/* This function call returns 0 if there are no CUDA capable devices. */
@@ -88,32 +88,32 @@ static int pp_init_gpu(struct pingpong_context *ctx, size_t _size)
 	int devID = 0;
 
 	/* pick up device with zero ordinal (default, or devID) */
-	CUCHECK(cuDeviceGet(&cuDevice, devID));
+	HIPCHECK(hipDeviceGet(&cuDevice, devID));
 
 	char name[128];
-	CUCHECK(cuDeviceGetName(name, sizeof(name), devID));
+	HIPCHECK(hipDeviceGetName(name, sizeof(name), devID));
 	printf("[pid = %d, dev = %d] device name = [%s]\n", getpid(), cuDevice, name);
 	printf("creating CUDA Ctx\n");
 
 	/* Create context */
-	error = cuCtxCreate(&cuContext, CU_CTX_MAP_HOST, cuDevice);
-	if (error != CUDA_SUCCESS) {
+	error = hipCtxCreate(&cuContext, hipDeviceScheduleAuto, cuDevice);
+	if (error != hipSuccess) {
 		printf("cuCtxCreate() error=%d\n", error);
 		return 1;
 	}
 
 	printf("making it the current CUDA Ctx\n");
-	error = cuCtxSetCurrent(cuContext);
-	if (error != CUDA_SUCCESS) {
-		printf("cuCtxSetCurrent() error=%d\n", error);
+	error = hipCtxSetCurrent(cuContext);
+	if (error != hipSuccess) {
+		printf("hipCtxSetCurrent() error=%d\n", error);
 		return 1;
 	}
 
 	printf("cuMemAlloc() of a %zd bytes GPU buffer\n", size);
-	CUdeviceptr d_A;
-	error = cuMemAlloc(&d_A, size);
-	if (error != CUDA_SUCCESS) {
-		printf("cuMemAlloc error=%d\n", error);
+	hipDeviceptr_t d_A;
+	error = hipMalloc(&d_A, size);
+	if (error != hipSuccess) {
+		printf("hipMalloc error=%d\n", error);
 		return 1;
 	}
 	printf("allocated GPU buffer address at %016llx pointer=%p\n", d_A,
@@ -126,14 +126,14 @@ static int pp_init_gpu(struct pingpong_context *ctx, size_t _size)
 static int pp_free_gpu(struct pingpong_context *ctx)
 {
 	int ret = 0;
-	CUdeviceptr d_A = (CUdeviceptr) ctx->buf[0];
+	hipDeviceptr_t d_A = (hipDeviceptr_t) ctx->buf[0];
 
 	printf("deallocating RX GPU buffer\n");
-	cuMemFree(d_A);
+	hipFree(d_A);
 	d_A = 0;
 
 	printf("destroying current CUDA Ctx\n");
-	CUCHECK(cuCtxDestroy(cuContext));
+	HIPCHECK(hipCtxDestroy(cuContext));
 
 	return ret;
 }
